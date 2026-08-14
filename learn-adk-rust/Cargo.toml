@@ -7,3 +7,7 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+adk-rust = { version = "2.0.0", features = ["deepseek"] }
+anyhow = { workspace = true }
+dotenvy = { workspace = true }
+tokio = { workspace = true }
