@@ -8,41 +8,52 @@ async fn main() -> Result<()> {
 
     let api_key = env::var("DEEPSEEK_API_KEY")?;
 
-    let model: Arc<dyn Llm> = Arc::new(DeepSeekClient::v4_flash(api_key)?);
+    let model = Arc::new(DeepSeekClient::v4_flash(api_key)?);
 
-    let writer = Arc::new(
-        LlmAgentBuilder::new("writer")
-            .description("根据反馈修改文章")
+    let code_agent = Arc::new(
+        LlmAgentBuilder::new("code_expert")
+            .description("编写，调试和解释 Rust，Python，JavaScript 代码")
             .instruction(
                 "
-            你是一个写作者。读取状态中的 article 和 feedback，\
-            根据反馈修改文章，更新状态 key: article。
+            你是一名资深程序员，提供高质量的代码实例和详细解释。\
+            代码要有注释，解释要通俗易懂
         ",
             )
-            .model(Arc::clone(&model))
+            .model(model.clone())
             .build()?,
     );
 
-    let editor = Arc::new(
-        LlmAgentBuilder::new("editor")
-            .description("审核文章质量")
+    let math_agent = Arc::new(
+        LlmAgentBuilder::new("math_expert")
+            .description("解答数学问题，包括代数，微积分，统计学")
             .instruction(
                 "
-            你是一名编辑，读取状态中的 article，\
-            评估文章质量， \
-            如果文章质量达到发布标准，调用 exit_loop 工具结束修改。\
-            否则，把修改写入状态 key: feedback。
+            你是一名数学教授。用清晰的步骤解题，\
+            并解释每一步的原理。
         ",
             )
-            .model(Arc::clone(&model))
+            .model(model.clone())
             .build()?,
     );
 
-    let refine_loop = LoopAgent::new("stock_analysis", vec![writer, editor]).with_max_iterations(5);
+    let coordinator = Arc::new(
+        LlmAgentBuilder::new("coordinator")
+            .description("综合助手，协调各领域专家")
+            .instruction(
+                "
+            你是一名综合助手。根据用户的问题类型，\
+            委托给合适的专家处理。\
+            如果问题涉及多个领域，可以先后委托多个专家，\
+            然后综合他们的回答给用户一个完整的答复。
+        ",
+            )
+            .sub_agent(code_agent)
+            .sub_agent(math_agent)
+            .model(model.clone())
+            .build()?,
+    );
 
-    let agent = Arc::new(refine_loop);
-
-    Launcher::new(agent).run().await?;
+    Launcher::new(coordinator).run().await?;
 
     Ok(())
 }
