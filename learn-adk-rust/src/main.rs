@@ -10,51 +10,54 @@ async fn main() -> Result<()> {
 
     let model: Arc<dyn Llm> = Arc::new(DeepSeekClient::v4_flash(api_key)?);
 
-    let researcher = Arc::new(
-        LlmAgentBuilder::new("researcher")
-            .description("负责搜集和整理资料")
+    let tech_analyst = Arc::new(
+        LlmAgentBuilder::new("tech_analyst ")
+            .description("从技术面分析股票")
             .instruction(
                 "
-            你是一个研究员，根据用户给出的主题，\
-            搜集相关资料，整理成结构化的调研笔记，\
-            写入状态 key: research_notes。
+            你是技术分析师，分析用户提供的股票代码的 \
+            k线形态，均线系统，成交量等技术指标，\
+            给出技术面评级（强烈买入/买入/中性/卖出/强烈卖出）。
         ",
             )
             .model(Arc::clone(&model))
             .build()?,
     );
 
-    let writer = Arc::new(
-        LlmAgentBuilder::new("writer")
-            .description("根据调研笔记撰写文章")
+    let market_analyst = Arc::new(
+        LlmAgentBuilder::new("market_analyst ")
+            .description("从基本面分析股票")
             .instruction(
                 "
-            你是一个文章写作者。读取状态中的 research_notes，\
-            撰写一篇 500 字左右的科普文章，\
-            写入状态 key: article_draft。
+            你是基本面分析师，分析用户提供的股票代码的 \
+            市盈率，市净率，营收增长等基本面指标， \
+            给出基本面评级。
         ",
             )
             .model(Arc::clone(&model))
             .build()?,
     );
 
-    let reviewer = Arc::new(
-        LlmAgentBuilder::new("reviewer")
-            .description("审核文章质量并给出修改建议")
+    let risk_analyst = Arc::new(
+        LlmAgentBuilder::new("risk_analyst")
+            .description("从基本面分析股票")
             .instruction(
                 "
-            你是一个资深编辑，读取状态中的 article_draft，\
-            检查语法，逻辑和可读性，\
-            输出最终修改后的文章。
+            你是风险评估师，分析用户提供的股票代码的，\
+            波动率，行业风险，政策风险，\
+            给出风险等级（低/中/高）。
         ",
             )
             .model(Arc::clone(&model))
             .build()?,
     );
 
-    let pipeline = SequentialAgent::new("content_pipeline", vec![researcher, writer, reviewer]);
+    let parallel_analysis = ParallelAgent::new(
+        "stock_analysis",
+        vec![tech_analyst, market_analyst, risk_analyst],
+    );
 
-    let agent = Arc::new(pipeline);
+    let agent = Arc::new(parallel_analysis);
 
     Launcher::new(agent).run().await?;
 
