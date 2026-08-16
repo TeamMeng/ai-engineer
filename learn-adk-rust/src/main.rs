@@ -10,54 +10,37 @@ async fn main() -> Result<()> {
 
     let model: Arc<dyn Llm> = Arc::new(DeepSeekClient::v4_flash(api_key)?);
 
-    let tech_analyst = Arc::new(
-        LlmAgentBuilder::new("tech_analyst ")
-            .description("从技术面分析股票")
+    let writer = Arc::new(
+        LlmAgentBuilder::new("writer")
+            .description("根据反馈修改文章")
             .instruction(
                 "
-            你是技术分析师，分析用户提供的股票代码的 \
-            k线形态，均线系统，成交量等技术指标，\
-            给出技术面评级（强烈买入/买入/中性/卖出/强烈卖出）。
+            你是一个写作者。读取状态中的 article 和 feedback，\
+            根据反馈修改文章，更新状态 key: article。
         ",
             )
             .model(Arc::clone(&model))
             .build()?,
     );
 
-    let market_analyst = Arc::new(
-        LlmAgentBuilder::new("market_analyst ")
-            .description("从基本面分析股票")
+    let editor = Arc::new(
+        LlmAgentBuilder::new("editor")
+            .description("审核文章质量")
             .instruction(
                 "
-            你是基本面分析师，分析用户提供的股票代码的 \
-            市盈率，市净率，营收增长等基本面指标， \
-            给出基本面评级。
+            你是一名编辑，读取状态中的 article，\
+            评估文章质量， \
+            如果文章质量达到发布标准，调用 exit_loop 工具结束修改。\
+            否则，把修改写入状态 key: feedback。
         ",
             )
             .model(Arc::clone(&model))
             .build()?,
     );
 
-    let risk_analyst = Arc::new(
-        LlmAgentBuilder::new("risk_analyst")
-            .description("从基本面分析股票")
-            .instruction(
-                "
-            你是风险评估师，分析用户提供的股票代码的，\
-            波动率，行业风险，政策风险，\
-            给出风险等级（低/中/高）。
-        ",
-            )
-            .model(Arc::clone(&model))
-            .build()?,
-    );
+    let refine_loop = LoopAgent::new("stock_analysis", vec![writer, editor]).with_max_iterations(5);
 
-    let parallel_analysis = ParallelAgent::new(
-        "stock_analysis",
-        vec![tech_analyst, market_analyst, risk_analyst],
-    );
-
-    let agent = Arc::new(parallel_analysis);
+    let agent = Arc::new(refine_loop);
 
     Launcher::new(agent).run().await?;
 
