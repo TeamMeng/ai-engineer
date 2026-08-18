@@ -1,5 +1,5 @@
 [workspace]
-members = ["learn-adk-rust"]
+members = ["learn-adk-rust", "liter-llm-demo"]
 resolver = "2"
 
 [workspace.dependencies]

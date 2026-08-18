@@ -1,0 +1,11 @@
+[package]
+name = "liter-llm-demo"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+anyhow = { workspace = true }
+dotenvy = { workspace = true }
+liter-llm = { version = "1.17.0", features = ["native-http"] }
+tokio = { workspace = true }
