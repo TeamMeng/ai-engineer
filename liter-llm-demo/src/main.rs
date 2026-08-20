@@ -28,6 +28,8 @@ async fn main() -> Result<()> {
 
     let mut stream = client.chat_stream(request).await?;
 
+    let mut full_response = String::new();
+
     println!("助手：");
     while let Some(chunk_result) = stream.next().await {
         match chunk_result {
@@ -36,6 +38,7 @@ async fn main() -> Result<()> {
                     if let Some(text) = &choice.delta.content {
                         print!("{}", text);
                         io::stdout().flush()?;
+                        full_response.push_str(text);
                     }
                 }
             }
@@ -46,6 +49,8 @@ async fn main() -> Result<()> {
         }
     }
     println!();
+
+    println!("full response all c: {}", full_response.len());
 
     Ok(())
 }
