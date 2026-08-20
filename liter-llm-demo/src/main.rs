@@ -1,9 +1,36 @@
 use anyhow::Result;
 use liter_llm::{
-    AssistantMessage, ChatCompletionRequest, ClientConfigBuilder, DefaultClient, LlmClient,
-    Message, SystemMessage, UserContent, UserMessage,
+    ChatCompletionRequest, ClientConfigBuilder, DefaultClient, LlmClient, Message, UserContent,
+    UserMessage,
 };
 use std::env;
+
+async fn ask_question(api_key: &str, model: &str, question: &str) -> Result<String> {
+    let config = ClientConfigBuilder::new(api_key).build();
+
+    let client = DefaultClient::new(config, Some(model))?;
+
+    let request = ChatCompletionRequest {
+        model: model.into(),
+        messages: vec![Message::User(UserMessage {
+            content: UserContent::Text(question.into()),
+            name: None,
+        })],
+        ..Default::default()
+    };
+
+    let response = client.chat(request).await?;
+
+    let text = response.choices[0]
+        .message
+        .content
+        .as_ref()
+        .and_then(|c| c.as_text())
+        .unwrap_or_default()
+        .to_string();
+
+    Ok(text)
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -11,61 +38,15 @@ async fn main() -> Result<()> {
 
     let api_key = env::var("DEEPSEEK_API_KEY")?;
 
-    let config = ClientConfigBuilder::new(api_key).build();
+    let question = "用一句话解释什么是人工智能";
 
-    let client = DefaultClient::new(config, Some("deepseek-v4-flash"))?;
+    let answer1 = ask_question(&api_key, "deepseek-v4-flash", question).await?;
 
-    let mut message: Vec<Message> = vec![Message::System(SystemMessage {
-        content: "你是一位地理知识助手，回答要简洁。".into(),
-        name: None,
-    })];
+    println!("{}", answer1);
 
-    message.push(Message::User(UserMessage {
-        content: UserContent::Text("法国的首都在哪里？".into()),
-        name: None,
-    }));
+    let answer2 = ask_question(&api_key, "deepseek-v4-flash", question).await?;
 
-    let request = ChatCompletionRequest {
-        model: "deepseek-v4-flash".into(),
-        messages: message.clone(),
-        ..Default::default()
-    };
-
-    let response = client.chat(request).await?;
-
-    let first_reply = response.choices[0]
-        .message
-        .content
-        .clone()
-        .unwrap_or_default();
-    println!("助手（第一轮）:{}", first_reply);
-
-    message.push(Message::Assistant(AssistantMessage {
-        content: Some(first_reply),
-        ..Default::default()
-    }));
-
-    let request = ChatCompletionRequest {
-        model: "deepseek-v4-flash".into(),
-        messages: message.clone(),
-        ..Default::default()
-    };
-
-    let response = client.chat(request).await?;
-
-    let second_reply = response.choices[0]
-        .message
-        .content
-        .clone()
-        .unwrap_or_default();
-    println!("助手（第一轮）:{}", second_reply);
-
-    if let Some(usage) = response.usage {
-        println!(
-            "本次消耗：输入 {} tokens，输出 {} tokens",
-            usage.prompt_tokens, usage.completion_tokens
-        );
-    }
+    println!("{}", answer2);
 
     Ok(())
 }
