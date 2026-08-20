@@ -1,36 +1,11 @@
 use anyhow::Result;
+use futures_util::StreamExt;
 use liter_llm::{
     ChatCompletionRequest, ClientConfigBuilder, DefaultClient, LlmClient, Message, UserContent,
     UserMessage,
 };
 use std::env;
-
-async fn ask_question(api_key: &str, model: &str, question: &str) -> Result<String> {
-    let config = ClientConfigBuilder::new(api_key).build();
-
-    let client = DefaultClient::new(config, Some(model))?;
-
-    let request = ChatCompletionRequest {
-        model: model.into(),
-        messages: vec![Message::User(UserMessage {
-            content: UserContent::Text(question.into()),
-            name: None,
-        })],
-        ..Default::default()
-    };
-
-    let response = client.chat(request).await?;
-
-    let text = response.choices[0]
-        .message
-        .content
-        .as_ref()
-        .and_then(|c| c.as_text())
-        .unwrap_or_default()
-        .to_string();
-
-    Ok(text)
-}
+use std::io::{self, Write};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -38,15 +13,39 @@ async fn main() -> Result<()> {
 
     let api_key = env::var("DEEPSEEK_API_KEY")?;
 
-    let question = "用一句话解释什么是人工智能";
+    let config = ClientConfigBuilder::new(api_key).build();
 
-    let answer1 = ask_question(&api_key, "deepseek-v4-flash", question).await?;
+    let client = DefaultClient::new(config, Some("deepseek-v4-flash"))?;
 
-    println!("{}", answer1);
+    let request = ChatCompletionRequest {
+        model: "deepseek-v4-flash".into(),
+        messages: vec![Message::User(UserMessage {
+            content: UserContent::Text("请写一首关于秋天的短诗，大约50字。".into()),
+            name: None,
+        })],
+        ..Default::default()
+    };
 
-    let answer2 = ask_question(&api_key, "deepseek-v4-flash", question).await?;
+    let mut stream = client.chat_stream(request).await?;
 
-    println!("{}", answer2);
+    println!("助手：");
+    while let Some(chunk_result) = stream.next().await {
+        match chunk_result {
+            Ok(chunk) => {
+                for choice in &chunk.choices {
+                    if let Some(text) = &choice.delta.content {
+                        print!("{}", text);
+                        io::stdout().flush()?;
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                break;
+            }
+        }
+    }
+    println!();
 
     Ok(())
 }

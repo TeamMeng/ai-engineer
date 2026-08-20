@@ -7,5 +7,6 @@ license = "MIT"
 [dependencies]
 anyhow = { workspace = true }
 dotenvy = { workspace = true }
+futures-util = { workspace = true }
 liter-llm = { version = "1.17.0", features = ["native-http"] }
 tokio = { workspace = true }
