@@ -1,9 +1,15 @@
 [workspace]
-members = ["learn-adk-rust", "liter-llm-demo"]
+members = [
+  "01-small-llm-function-call-rust",
+  "learn-adk-rust",
+  "liter-llm-demo",
+]
 resolver = "2"
 
 [workspace.dependencies]
 anyhow = "1.0.104"
 dotenvy = "0.15.7"
 futures-util = "0.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
 tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros"] }
