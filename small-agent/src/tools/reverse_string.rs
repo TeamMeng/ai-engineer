@@ -1,5 +1,4 @@
 use serde::Deserialize;
-use serde_json::json;
 
 use crate::tools::Tool;
 
@@ -17,20 +16,6 @@ impl Tool for ReverseStringTool {
 
     fn description(&self) -> &'static str {
         "反转输入的字符串"
-    }
-
-    fn parameters(&self) -> serde_json::Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "text": {
-                    "type": "string",
-                    "description": "需要反转的文本。"
-                }
-            },
-            "required": ["text"],
-            "additionalProperties": false
-        })
     }
 
     fn call(&self, arguments: &str) -> String {

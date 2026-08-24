@@ -1,5 +1,3 @@
-use serde_json::json;
-
 use crate::tools::Tool;
 
 pub struct WordCountTool;
@@ -10,30 +8,19 @@ impl Tool for WordCountTool {
     }
 
     fn description(&self) -> &'static str {
-        "统计输入文本的字符数与词数"
-    }
-
-    fn parameters(&self) -> serde_json::Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "text": {
-                    "type": "string",
-                    "description": "需要统计的文本内容"
-                }
-            },
-            "required": ["test"]
-        })
+        "统计文本的字符数与词数。直接输入待统计的文本内容"
     }
 
     fn call(&self, arguments: &str) -> String {
-        let text_to_count = if let Ok(v) = serde_json::from_str::<serde_json::Value>(arguments) {
+        let input_text = arguments.trim();
+
+        let text_to_count = if let Ok(v) = serde_json::from_str::<serde_json::Value>(input_text) {
             v.get("text")
                 .and_then(|t| t.as_str())
-                .unwrap_or(arguments)
+                .unwrap_or(input_text)
                 .to_string()
         } else {
-            arguments.to_string()
+            input_text.trim_matches('"').trim_matches('\'').to_string()
         };
 
         let total_chars = text_to_count.chars().count();

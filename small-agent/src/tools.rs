@@ -3,32 +3,13 @@ pub mod current_time;
 pub mod reverse_string;
 pub mod word_count;
 
-use anyhow::Result;
-use async_openai::types::chat::{ChatCompletionTool, ChatCompletionTools, FunctionObjectArgs};
 use std::collections::BTreeMap;
 use tracing::{debug, instrument};
 
-#[allow(unused)]
 pub trait Tool: Send + Sync {
     fn name(&self) -> &'static str;
-
     fn description(&self) -> &'static str;
-
-    fn parameters(&self) -> serde_json::Value;
-
     fn call(&self, arguments: &str) -> String;
-
-    fn to_chat_tool(&self) -> Result<ChatCompletionTools> {
-        let function = FunctionObjectArgs::default()
-            .name(self.name())
-            .description(self.description())
-            .parameters(self.parameters())
-            .build()?;
-
-        Ok(ChatCompletionTools::Function(ChatCompletionTool {
-            function,
-        }))
-    }
 }
 
 #[derive(Default)]
@@ -74,7 +55,7 @@ impl ToolRegistry {
         debug!("开始执行底层工具调用");
         let result = match self.tools.get(name) {
             Some(tool) => tool.call(arguments),
-            None => format!("Error: unknown tool: '{}'", name,),
+            None => format!("Error: unknown tool: '{name}'"),
         };
         debug!(output = %result, "底层工具调用完毕");
         result

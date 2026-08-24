@@ -1,18 +1,14 @@
 use anyhow::Result;
 use async_openai::{Client, config::OpenAIConfig};
+use small_agent::{
+    agent::{react_loop, types::AgentConfig},
+    tools::ToolRegistry,
+};
 use std::{
     env,
     io::{self, Write},
 };
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
-
-use crate::{
-    agent::{react_loop, types::AgentConfig},
-    tools::ToolRegistry,
-};
-
-mod agent;
-mod tools;
 
 fn init_tracing() {
     let filter_layer = EnvFilter::try_from_default_env()
