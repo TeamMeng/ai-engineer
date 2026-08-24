@@ -4,15 +4,36 @@ use std::{
     env,
     io::{self, Write},
 };
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::{agent::chat_with_tools, tools::ToolRegistry};
+use crate::{
+    agent::{react_loop, types::AgentConfig},
+    tools::ToolRegistry,
+};
 
 mod agent;
 mod tools;
 
+fn init_tracing() {
+    let filter_layer = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("small_agent=info,warn"));
+
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_target(false)
+        .with_thread_ids(false)
+        .with_file(false)
+        .with_line_number(false);
+
+    tracing_subscriber::registry()
+        .with(filter_layer)
+        .with(fmt_layer)
+        .init();
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
+    init_tracing();
 
     let api_key = env::var("DEEPSEEK_API_KEY").expect("not found DEEPSEEK_API_KEY");
 
@@ -22,10 +43,17 @@ async fn main() -> Result<()> {
     let client = Client::with_config(config);
 
     let registry = ToolRegistry::default_tools();
+    let agent_config = AgentConfig::default();
+
+    tracing::info!(
+        tools = ?registry.tool_names(),
+        model = %agent_config.model,
+        "ReAct Agent 初始化就绪"
+    );
 
     println!("{}", "=".repeat(60));
-    println!("LLM Function Calling (Rust + async-openai 0.41)");
-    println!("可用工具：reverse_string / basic_calculator");
+    println!("ReAct Agent (Rust + DeepSeek + Tracing)");
+    println!("可用工具: {:?}", registry.tool_names());
     println!("输入 'exit' 或 'quit' 退出");
     println!("{}", "=".repeat(60));
 
@@ -49,19 +77,12 @@ async fn main() -> Result<()> {
             break;
         }
 
-        println!("\n\n{}", "*".repeat(60));
-        println!("User>\t {user_input}");
-        println!("{}", "*".repeat(60));
-
-        let model = "deepseek-chat";
-        match chat_with_tools(&client, user_input, model, &registry).await {
+        match react_loop(&client, user_input, &registry, &agent_config).await {
             Ok(answer) => {
-                println!("\n\n{}", "=".repeat(60));
-                println!("Assistant>\t {answer}");
-                println!("{}", "*".repeat(60));
-                println!("\n[助手] {answer}\n{}\n", "─".repeat(60));
+                println!("\n[助手] {answer}\n{}", "─".repeat(60));
             }
             Err(err) => {
+                tracing::error!(error = ?err, "ReAct 执行失败");
                 eprintln!("\n[Error] 执行失败: {err:?}");
             }
         }

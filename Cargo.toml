@@ -1,6 +1,6 @@
 [workspace]
 members = [
-  "01-small-llm-function-call-rust",
+  "small-agent",
   "learn-adk-rust",
   "liter-llm-demo",
 ]

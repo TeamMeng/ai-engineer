@@ -1,10 +1,14 @@
 pub mod basic_calculator;
+pub mod current_time;
 pub mod reverse_string;
+pub mod word_count;
 
 use anyhow::Result;
 use async_openai::types::chat::{ChatCompletionTool, ChatCompletionTools, FunctionObjectArgs};
 use std::collections::BTreeMap;
+use tracing::{debug, instrument};
 
+#[allow(unused)]
 pub trait Tool: Send + Sync {
     fn name(&self) -> &'static str;
 
@@ -38,27 +42,41 @@ impl ToolRegistry {
     }
 
     pub fn default_tools() -> Self {
-        let mut registry = Self::new();
-        registry.registry(reverse_string::ReverseStringTool);
-        registry.registry(basic_calculator::BasicCalculatorTool);
-        registry
+        Self::new()
+            .registry(reverse_string::ReverseStringTool)
+            .registry(basic_calculator::BasicCalculatorTool)
+            .registry(word_count::WordCountTool)
+            .registry(current_time::CurrentTimeTool)
     }
 
-    pub fn registry(&mut self, tool: impl Tool + 'static) {
+    pub fn registry(mut self, tool: impl Tool + 'static) -> Self {
         self.tools.insert(tool.name(), Box::new(tool));
+        self
     }
 
-    pub fn get_schemas(&self) -> Result<Vec<ChatCompletionTools>> {
+    pub fn contains(&self, name: &str) -> bool {
+        self.tools.contains_key(name)
+    }
+
+    pub fn tool_descriptions(&self) -> Vec<String> {
         self.tools
             .values()
-            .map(|tool| tool.to_chat_tool())
+            .map(|t| format!("- {}: {}", t.name(), t.description()))
             .collect()
     }
 
+    pub fn tool_names(&self) -> Vec<&'static str> {
+        self.tools.keys().copied().collect()
+    }
+
+    #[instrument(name = "tool_execution", skip(self), fields(tool = %name, input = %arguments))]
     pub fn execute(&self, name: &str, arguments: &str) -> String {
-        match self.tools.get(name) {
+        debug!("开始执行底层工具调用");
+        let result = match self.tools.get(name) {
             Some(tool) => tool.call(arguments),
             None => format!("Error: unknown tool: '{}'", name,),
-        }
+        };
+        debug!(output = %result, "底层工具调用完毕");
+        result
     }
 }
