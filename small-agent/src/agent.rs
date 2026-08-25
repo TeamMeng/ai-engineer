@@ -1,3 +1,5 @@
+pub mod plan_and_execute;
+pub mod planner;
 pub mod prompt;
 pub mod types;
 
@@ -19,14 +21,9 @@ use crate::{
 };
 
 #[instrument(
-    name = "react_agent_run",
+    name = "react_run",
     skip(client, registry),
-    fields(
-        question = %question,
-        model = %config.model,
-        max_steps = config.max_steps,
-        timeout_secs = config.timeout.as_secs()
-    )
+    fields(model = %config.model)
 )]
 pub async fn react_loop(
     client: &Client<OpenAIConfig>,
@@ -37,10 +34,10 @@ pub async fn react_loop(
     let mut history: Vec<HistoryEntry> = Vec::with_capacity(config.max_steps);
 
     for step in 1..=config.max_steps {
-        let step_span = info_span!("step", step = step, max_steps = config.max_steps);
+        let step_span = info_span!("step", step = step);
         let _enter = step_span.entered();
 
-        info!("开始构建 Prompt 并调用大模型");
+        debug!("开始构建 Prompt 并请求大模型");
 
         let prompt_text = build_prompt(question, &history, registry);
         debug!(prompt_len = prompt_text.len(), "Prompt 构建完成");
@@ -60,7 +57,7 @@ pub async fn react_loop(
             .await
             .with_context(|| {
                 format!(
-                    " 大模型在 {} 秒内未返回响应，已触发超时熔断",
+                    "大模型在 {} 秒内未返回响应，已触发超时熔断",
                     config.timeout.as_secs()
                 )
             })??;
@@ -72,11 +69,11 @@ pub async fn react_loop(
             .and_then(|c| c.message.content)
             .context("大模型未回复")?;
 
-        // debug!(raw_output = %model_output, "收到模型原始响应");
+        debug!(raw_output = %model_output, "收到模型原始响应");
 
         match parse_step(&model_output) {
             StepOutcome::FinalAnswer(answer) => {
-                info!(step = step, final_answer = %answer, "🎉 [Final Answer] 推理达成目标");
+                debug!(step = step, answer = %answer, "推理达成目标");
                 return Ok(answer);
             }
             StepOutcome::Action {
@@ -84,20 +81,20 @@ pub async fn react_loop(
                 action,
                 action_input,
             } => {
-                info!(thought = %thought, action = %action, action_input = %action_input, "💭 [Thought & Action] 模型决定执行工具");
+                debug!(thought = %thought, "模型思考细节");
+                info!(tool = %action, input = %action_input, "🛠️  调用工具");
 
                 let observation = if registry.contains(&action) {
                     registry.execute(&action, &action_input)
                 } else {
-                    let err = format!(
+                    format!(
                         "ERROR: 工具 '{}' 不存在. 可选工具: {:?}",
                         action,
                         registry.tool_names()
-                    );
-                    err
+                    )
                 };
 
-                info!(action = %action, observation = %observation, "👁️ [Observation] 获得工具执行结果");
+                info!(output = %observation, "👁️  工具返回");
 
                 history.push(HistoryEntry {
                     thought,
@@ -111,9 +108,16 @@ pub async fn react_loop(
                 raw_output,
                 error_msg,
             } => {
-                warn!(raw_output = %raw_output, error = %error_msg, "⚠️ [Format Error] 输出格式异常，注入自愈提示");
+                warn!(error = %error_msg, "⚠️ 输出格式异常，注入自愈提示");
 
-                history.push(HistoryEntry { thought: "Format correction required".to_string(), action: "system_validator".to_string(), action_input: raw_output, observation: format!("ERROR: {}. Please strictly use 'Thought: ... Action: ... Action Input: ...'", error_msg) });
+                history.push(HistoryEntry {
+                    thought: "Format correction required".to_string(),
+                    action: "system_validator".to_string(),
+                    action_input: raw_output,
+                    observation: format!(
+                        "ERROR: {error_msg}. Please strictly use 'Thought: ... Action: ... Action Input: ...'"
+                    ),
+                });
             }
         }
     }

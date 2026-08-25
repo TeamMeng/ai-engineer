@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_openai::{Client, config::OpenAIConfig};
 use small_agent::{
-    agent::{react_loop, types::AgentConfig},
+    agent::{plan_and_execute::run_plan_and_execute, react_loop, types::AgentConfig},
     tools::ToolRegistry,
 };
 use std::{
@@ -41,16 +41,10 @@ async fn main() -> Result<()> {
     let registry = ToolRegistry::default_tools();
     let agent_config = AgentConfig::default();
 
-    tracing::info!(
-        tools = ?registry.tool_names(),
-        model = %agent_config.model,
-        "ReAct Agent 初始化就绪"
-    );
-
     println!("{}", "=".repeat(60));
     println!("ReAct Agent (Rust + DeepSeek + Tracing)");
     println!("可用工具: {:?}", registry.tool_names());
-    println!("输入 'exit' 或 'quit' 退出");
+    println!("输入 '/plan <任务>' 开启规划执行模式，输入 'exit' 退出");
     println!("{}", "=".repeat(60));
 
     let stdin = io::stdin();
@@ -73,13 +67,17 @@ async fn main() -> Result<()> {
             break;
         }
 
-        match react_loop(&client, user_input, &registry, &agent_config).await {
-            Ok(answer) => {
-                println!("\n[助手] {answer}\n{}", "─".repeat(60));
+        if let Some(task) = user_input.strip_prefix("/plan") {
+            let task = task.trim();
+            println!("\n[模式] 已开启 Plan-and-Execute 深度规划引擎");
+            match run_plan_and_execute(&client, task, &registry, &agent_config).await {
+                Ok(answer) => println!("\n[最终交付] {answer}\n{}", "═".repeat(60)),
+                Err(e) => eprintln!("\n[Error] 执行失败: {e:?}"),
             }
-            Err(err) => {
-                tracing::error!(error = ?err, "ReAct 执行失败");
-                eprintln!("\n[Error] 执行失败: {err:?}");
+        } else {
+            match react_loop(&client, user_input, &registry, &agent_config).await {
+                Ok(answer) => println!("\n[助手] {answer}\n{}", "─".repeat(60)),
+                Err(e) => eprintln!("\n[Error] 执行失败: {e:?}"),
             }
         }
     }
