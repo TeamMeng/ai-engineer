@@ -1,6 +1,7 @@
 pub mod basic_calculator;
 pub mod current_time;
 pub mod reverse_string;
+pub mod verify_solution;
 pub mod word_count;
 
 use std::collections::BTreeMap;
@@ -28,6 +29,7 @@ impl ToolRegistry {
             .registry(basic_calculator::BasicCalculatorTool)
             .registry(word_count::WordCountTool)
             .registry(current_time::CurrentTimeTool)
+            .registry(verify_solution::VerifySolutionTool)
     }
 
     pub fn registry(mut self, tool: impl Tool + 'static) -> Self {

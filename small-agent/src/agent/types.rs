@@ -30,6 +30,13 @@ pub struct AgentConfig {
     pub timeout: Duration,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct EvaluationResult {
+    pub success: bool,
+    pub score: f32,
+    pub feedback: String,
+}
+
 impl Default for AgentConfig {
     fn default() -> Self {
         Self {
