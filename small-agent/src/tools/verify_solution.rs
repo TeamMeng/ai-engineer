@@ -16,9 +16,9 @@ impl Tool for VerifySolutionTool {
 
     fn description(&self) -> &'static str {
         "
-            答案质检与自我反思工具。在准备给出 Final Answer
-            前调用，用于检查拟定答案是否完整回答了问题、是否存在遗漏。
-            入参为 JSON: {\"draft_answer\": \"你的拟定最终答案\"}
+答案质检与自我反思工具。在准备给出 Final Answer
+前调用，用于检查拟定答案是否完整回答了问题、是否存在遗漏。
+入参为 JSON: {\"draft_answer\": \"你的拟定最终答案\"}
         "
     }
 

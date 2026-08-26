@@ -8,38 +8,37 @@ pub fn build_prompt(question: &str, history: &[HistoryEntry], registry: &ToolReg
     let tool_descriptions = registry.tool_descriptions().join("\n");
 
     let mut prompt = format!(
-        r#"
-            You solve tasks using tools through an iterative reasoning process.
-            You MUST respond using EXACTLY this format for each step:
+        r#"You solve tasks using tools through an iterative reasoning process.
+You MUST respond using EXACTLY this format for each step:
 
-            Thought: Describe your step-by-step thinking process.
-            Action: Select exactly one tool from [{tool_names}]
-            Action Input: The specific raw input argument for the tool.
+Thought: Describe your step-by-step thinking process.
+Action: Select exactly one tool from [{tool_names}]
+Action Input: The specific raw input argument for the tool.
 
-            When you have received the Observation and are ready to answer the question, output:
-            Thought: I now have the final answer.
-            Final Answer: The full and direct response to the user.
+When you have received the Observation and are ready to answer the question, output:
+Thought: I now have the final answer.
+Final Answer: The full and direct response to the user.
 
-            IMPORTANT RULES:
-            1. Output only ONE Thought/Action/Action Input cycle per turn.
-            2. ALWAYS use a tool if an applicable tool exists.
-            3. DO NOT include "Final Answer:" in the first turn until you have received an Observation from a tool!
-            4. NEVER generate the "Observation:" yourself; it will be provided by the system.
+IMPORTANT RULES:
+1. Output only ONE Thought/Action/Action Input cycle per turn.
+2. ALWAYS use a tool if an applicable tool exists.
+3. DO NOT include "Final Answer:" in the first turn until you have received an Observation from a tool!
+4. NEVER generate the "Observation:" yourself; it will be provided by the system.
 
-            Available Tools:
-            {tool_descriptions}
+Available Tools:
+{tool_descriptions}
 
-            Question: {question}
+Question: {question}
         "#
     );
 
     for entry in history {
         prompt.push_str(&format!(
             r#"
-                Thought: {}
-                Action: {}
-                Action Input: {}
-                Observation: {}
+Thought: {}
+Action: {}
+Action Input: {}
+Observation: {}
             "#,
             entry.thought, entry.action, entry.action_input, entry.observation
         ));
@@ -98,10 +97,10 @@ mod tests {
     #[test]
     fn test_parse_action_priority() {
         let raw = r#"
-            Thought: 先反转字符串
-            Action: reverse_string
-            Action Input: Rust2024
-            Final Answer: 4202tsuR
+Thought: 先反转字符串
+Action: reverse_string
+Action Input: Rust2024
+Final Answer: 4202tsuR
         "#;
         let outcome = parse_step(raw);
         match outcome {
