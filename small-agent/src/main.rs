@@ -74,6 +74,13 @@ async fn main() -> Result<()> {
                 Ok(answer) => println!("\n[最终交付] {answer}\n{}", "═".repeat(60)),
                 Err(e) => eprintln!("\n[Error] 执行失败: {e:?}"),
             }
+        } else if let Some(task) = user_input.strip_prefix("/lats") {
+            let task = task.trim();
+            println!("\n[模式] 已开启 LATS 蒙特卡洛树搜索推演引擎 (AlphaGo 算法");
+            match run_plan_and_execute(&client, task, &registry, &agent_config).await {
+                Ok(answer) => println!("\n[最终交付] {answer}\n{}", "═".repeat(60)),
+                Err(e) => eprintln!("\n[Error] 树搜索执行失败: {e:?}"),
+            }
         } else {
             match react_loop(&client, user_input, &registry, &agent_config).await {
                 Ok(answer) => println!("\n[助手] {answer}\n{}", "─".repeat(60)),

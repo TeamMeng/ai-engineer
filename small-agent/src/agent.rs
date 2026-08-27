@@ -1,3 +1,4 @@
+pub mod lats;
 pub mod plan_and_execute;
 pub mod planner;
 pub mod prompt;
