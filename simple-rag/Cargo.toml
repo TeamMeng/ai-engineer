@@ -7,6 +7,9 @@ license = "MIT"
 [dependencies]
 anyhow = { workspace = true }
 async-openai = { workspace = true }
+charabia = { version = "0.10.0", default-features = false, features = [
+    "chinese",
+] }
 dotenvy = { workspace = true }
 fastembed = "6.0.2"
 futures-util = { workspace = true }
