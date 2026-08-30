@@ -8,6 +8,7 @@ license = "MIT"
 anyhow = { workspace = true }
 async-openai = { workspace = true }
 dotenvy = { workspace = true }
+fastembed = "6.0.2"
 futures-util = { workspace = true }
 icu_normalizer = "2.3.0"
 serde = { workspace = true }
