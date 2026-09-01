@@ -8,10 +8,10 @@ license = "MIT"
 anyhow = { workspace = true }
 async-openai = { workspace = true }
 charabia = { version = "0.10.0", default-features = false, features = [
-    "chinese",
+  "chinese",
 ] }
 dotenvy = { workspace = true }
-fastembed = "6.0.2"
+fastembed = { workspace = true }
 futures-util = { workspace = true }
 icu_normalizer = "2.3.0"
 serde = { workspace = true }

@@ -4029,6 +4029,7 @@ dependencies = [
  "anyhow",
  "async-openai",
  "dotenvy",
+ "fastembed",
  "tiktoken-rs",
  "tokio",
 ]
