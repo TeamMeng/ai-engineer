@@ -1,5 +1,5 @@
 [workspace]
-members = ["small-agent", "learn-adk-rust", "liter-llm-demo", "simple-rag"]
+members = ["small-agent", "learn-adk-rust", "liter-llm-demo", "simple-rag", "simple-memory"]
 resolver = "2"
 
 [workspace.dependencies]
