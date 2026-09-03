@@ -1,0 +1,19 @@
+### deepseek
+POST http://127.0.0.1:3000/v1/chat/completions
+Authorization: Bearer sk-dev-456
+Content-Type: application/json
+
+{
+    "model": "deepseek/deepseek-chat",
+    "messages": [{"role": "user", "content": "用一句话介绍 Go"}]
+}
+
+### ollama
+POST http://127.0.0.1:3000/v1/chat/completions
+Authorization: Bearer sk-dev-456
+Content-Type: application/json
+
+{
+    "model": "ollama/qwen2.5:7b",
+    "messages": [{"role": "user", "content": "用一句话介绍 Go"}]
+}
