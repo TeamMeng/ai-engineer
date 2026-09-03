@@ -10,19 +10,30 @@ async fn main() -> Result<()> {
         .create()
         .await?;
 
-    println!("Sandbox already begin....");
-
     let output = sb
-        .exec("python", ["-c", "print('你好，来自 microVM!')"])
+        .exec("python", ["-c", "print('第一天数据处理完成')"])
         .await?;
 
     println!("Output: {}", output.stdout()?);
 
-    println!("Exit code: {}", output.status().code);
+    sb.stop().await?;
+    println!("Sandbox stop");
 
-    sb.destroy().await?;
+    println!("Second day");
+    let sb = Sandbox::start("Hello").await?;
 
-    print!("Sandbox Stop");
+    let output = sb
+        .exec("python", ["-c", "print('第二天数据处理完成')"])
+        .await?;
+
+    println!("Output: {}", output.stdout()?);
+    println!("Task finish");
+
+    sb.stop().await?;
+    println!("Sandbox stop");
+
+    Sandbox::remove("Hello").await?;
+    println!("Sandbox remove");
 
     Ok(())
 }
