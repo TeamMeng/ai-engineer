@@ -5,6 +5,7 @@ members = [
   "liter-llm-demo",
   "simple-rag",
   "simple-memory",
+  "hello-sandbox",
 ]
 resolver = "2"
 

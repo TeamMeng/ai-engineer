@@ -1,0 +1,10 @@
+[package]
+name = "hello-sandbox"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+anyhow = { workspace = true }
+microsandbox = { version = "0.6.16" }
+tokio = { workspace = true }
