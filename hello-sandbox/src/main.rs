@@ -3,22 +3,22 @@ use microsandbox::Sandbox;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let sb = Sandbox::list().await?;
+    let sb = Sandbox::builder("Hello")
+        .replace()
+        .image("docker.m.daocloud.io/library/python:3.12-alpine")
+        .memory(512)
+        .create()
+        .await?;
 
-    if sb.sandboxes.is_empty() {
-        println!("Not found sandbox");
-        return Ok(());
-    }
+    let output = sb
+        .exec("python", ["-c", "print('第一天数据处理完成')"])
+        .await?;
+    println!("{}", output.stdout()?);
 
-    println!("There have {} sandboxes", sb.sandboxes.len());
+    sb.request_drain().await?;
+    println!("request drain");
 
-    for handle in &sb.sandboxes {
-        println!(
-            "name: {}, status: {:?}",
-            handle.name(),
-            handle.status_snapshot()
-        );
-    }
+    println!("All Task finish...");
 
     Ok(())
 }
