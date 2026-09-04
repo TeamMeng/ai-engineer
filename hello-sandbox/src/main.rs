@@ -10,30 +10,25 @@ async fn main() -> Result<()> {
         .create()
         .await?;
 
-    let output = sb
-        .exec("python", ["-c", "print('第一天数据处理完成')"])
-        .await?;
+    let handle = Sandbox::get("Hello").await?;
 
-    println!("Output: {}", output.stdout()?);
+    // 1. 查看沙箱名称
+    println!("沙箱名称: {}", handle.name());
+    // 2. 查看沙箱状态
+    // - Handle 上提供同步快照方法：status_snapshot()
+    println!("沙箱状态(快照): {:?}", handle.status_snapshot());
+    // - live 沙箱对象上提供异步实时查询：sb.status().await?
+    println!("沙箱状态(实时): {:?}", sb.status().await?);
 
-    sb.stop().await?;
-    println!("Sandbox stop");
+    // 3. 查看内存配置
+    // - handle.config() 返回 Result<SandboxConfig>，需加 `?` 解包
+    // - memory_mib 位于 spec.resources 结构体中
+    println!(
+        "内存配置: {} MiB",
+        handle.config()?.spec.resources.memory_mib
+    );
 
-    println!("Second day");
-    let sb = Sandbox::start("Hello").await?;
-
-    let output = sb
-        .exec("python", ["-c", "print('第二天数据处理完成')"])
-        .await?;
-
-    println!("Output: {}", output.stdout()?);
-    println!("Task finish");
-
-    sb.stop().await?;
-    println!("Sandbox stop");
-
-    Sandbox::remove("Hello").await?;
-    println!("Sandbox remove");
+    sb.destroy().await?;
 
     Ok(())
 }
