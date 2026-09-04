@@ -44,6 +44,11 @@ jobs:
       - name: install nextest
         uses: taiki-e/install-action@nextest
       - uses: Swatinem/rust-cache@v2
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcap-ng-dev
       # - name: Install Protoc
       #   uses: arduino/setup-protoc@v2
       - name: Check code format
