@@ -10,17 +10,31 @@ async fn main() -> Result<()> {
         .create()
         .await?;
 
-    sb.exec(
-        "python",
-        ["-c", "import time; time.sleep(3); print('批处理完成')"],
-    )
-    .await?;
+    let output = sb
+        .exec(
+            "python",
+            [
+                "-c",
+                r#"import sys
+print('这是标准输出')
+print('这是错误输出', file=sys.stderr)
+sys.exit(0)"#,
+            ],
+        )
+        .await?;
 
-    sb.request_drain().await?;
+    let stdout_text = output.stdout()?;
+    println!("stdout: {}", stdout_text);
 
-    let result = sb.wait_until_stopped().await?;
+    let stderr_text = output.stderr()?;
+    println!("stderr: {}", stderr_text);
 
-    println!("Sandbox is stopping and status: {:?}", result);
+    let exit_code = output.status().code;
+    let is_success = output.status().success;
+
+    println!("exit code: {}, is success: {}", exit_code, is_success);
+
+    sb.destroy().await?;
 
     Ok(())
 }
