@@ -10,15 +10,17 @@ async fn main() -> Result<()> {
         .create()
         .await?;
 
-    let output = sb
-        .exec("python", ["-c", "print('第一天数据处理完成')"])
-        .await?;
-    println!("{}", output.stdout()?);
+    sb.exec(
+        "python",
+        ["-c", "import time; time.sleep(3); print('批处理完成')"],
+    )
+    .await?;
 
     sb.request_drain().await?;
-    println!("request drain");
 
-    println!("All Task finish...");
+    let result = sb.wait_until_stopped().await?;
+
+    println!("Sandbox is stopping and status: {:?}", result);
 
     Ok(())
 }
