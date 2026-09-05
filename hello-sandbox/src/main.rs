@@ -1,50 +1,47 @@
 use anyhow::Result;
-use microsandbox::Sandbox;
+use microsandbox::{Sandbox, Volume};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let volume_name = "pipeline-cache";
+    let vol = Volume::builder("task-store").create().await?;
 
-    println!("=== 启动沙箱 A：生成数据 ===");
-    let sb_a = Sandbox::builder("worker-a")
+    vol.fs()
+        .write(
+            "/input.json",
+            br#"{"task": "summarize", "data": [1, 2, 3]}"#,
+        )
+        .await?;
+
+    println!("已在宿主机向卷预置 input.json");
+
+    let sb = Sandbox::builder("processor")
         .replace()
         .image("docker.m.daocloud.io/library/python:3.12-alpine")
-        .volume("/data", |m| {
-            m.named_with(volume_name, |v| v.ensure_exists())
-        })
+        .volume("/workspace", |m| m.named("task-store"))
         .create()
         .await?;
 
-    sb_a.exec(
+    sb.exec(
         "python",
         [
             "-c",
-            "open('/data/result.txt', 'w').write('这是沙箱A的计算结果')",
+            r#"
+import json
+data = json.load(open('/workspace/input.json'))
+result = {"sum": sum(data['data'])}
+json.dump(result, open('/workspace/output.json', 'w'))
+"#,
         ],
     )
     .await?;
 
-    sb_a.destroy().await?;
-    println!("=== 启动沙箱 B：生成数据 ===");
-    let sb_b = Sandbox::builder("worker-b")
-        .replace()
-        .image("docker.m.daocloud.io/library/python:3.12-alpine")
-        .volume("/input", |m| m.named(volume_name))
-        .create()
-        .await?;
+    sb.destroy().await?;
 
-    let output = sb_b
-        .exec(
-            "python",
-            [
-                "-c",
-                "print('沙箱B读到:', open('/input/result.txt').read())",
-            ],
-        )
-        .await?;
+    let outopt_str = vol.fs().read_to_string("/output.json").await?;
+    println!("宿主机免开机直读产物: {}", outopt_str);
 
-    println!("{}", output.stdout()?);
-    sb_b.destroy().await?;
+    Volume::remove(vol.name()).await?;
+    println!("卷已清理完毕");
 
     Ok(())
 }
